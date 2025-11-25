@@ -1,38 +1,38 @@
 # Metadata Extractor - OSINT CLI Tool
 
-Инструмент командной строки для извлечения и анализа метаданных из изображений.
+A command-line tool for extracting and analyzing metadata from images.
 
-## Возможности
+## Features
 
-- Полное извлечение EXIF данных - все теги, включая скрытые
-- GPS координаты - автоматическое определение местоположения с ссылкой на Google Maps
-- Информация о камере - производитель, модель, объектив
-- Настройки съемки - ISO, выдержка, диафрагма, фокусное расстояние
-- Автосохранение - результаты сохраняются в ./save/
+- Complete EXIF data extraction - all tags, including hidden ones
+- GPS coordinates - automatic location detection with Google Maps link
+- Camera information - manufacturer, model, lens
+- Shooting settings - ISO, shutter speed, aperture, focal length
+- Auto-save - results are saved to ./save/
 
-## Установка
+## Installation
 
-### 1. Создать виртуальное окружение
+### 1. Create a virtual environment
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 2. Установить зависимости
+### 2. Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-## Использование
+## Usage
 
-### Интерактивный режим
+### Interactive mode
 ```bash
 ./venv/bin/python3 main.py
 ```
 
-Программа запросит путь к файлу изображения.
+The program will prompt for the image file path.
 
-## Пример вывода
+## Example Output
 
 ```
 ======================================================================
@@ -74,101 +74,101 @@ Google Maps                    : https://www.google.com/maps?q=55.751244,37.6184
 ----------------------------------------------------------------------
 RAW EXIF DATA (ALL TAGS)
 ----------------------------------------------------------------------
-[... все остальные EXIF теги ...]
+[... all other EXIF tags ...]
 
 Extracted 87 EXIF tags
 Results saved to: ./save/metadata_IMG_1234_20241125_170530.txt
 ```
 
-## Структура проекта
+## Project Structure
 
 ```
 githubber/
-├── main.py                      # Точка входа
-├── extractors/                  # Модули извлечения метаданных
+├── main.py                      # Entry point
+├── extractors/                  # Metadata extraction modules
 │   ├── image_extractor.py
 │   └── __init__.py
-├── parsers/                     # Модули парсинга данных
+├── parsers/                     # Data parsing modules
 │   ├── gps_parser.py
 │   ├── exif_parser.py
 │   └── __init__.py
-├── output/                      # Модули вывода
+├── output/                      # Output modules
 │   ├── formatter.py
 │   ├── file_saver.py
 │   └── __init__.py
-├── utils/                       # Утилиты
+├── utils/                       # Utilities
 │   ├── helpers.py
 │   └── __init__.py
 ├── requirements.txt
-└── save/                        # Сохраненные результаты
+└── save/                        # Saved results
 ```
 
-## Технические детали
+## Technical Details
 
-### Зависимости
-- Pillow - Обработка изображений и извлечение EXIF
-- colorama - Цветной вывод в терминале
+### Dependencies
+- Pillow - Image processing and EXIF extraction
+- colorama - Colored terminal output
 
-### Поддерживаемые форматы
-- Изображения: JPEG, PNG, TIFF, BMP, GIF
+### Supported Formats
+- Images: JPEG, PNG, TIFF, BMP, GIF
 
-### Извлекаемые данные
+### Extractable Data
 
-#### Изображения
-- Базовая информация (размер, формат, разрешение)
-- Камера (производитель, модель, объектив)
-- Настройки съемки (ISO, выдержка, диафрагма, фокусное расстояние)
-- GPS координаты (широта, долгота, высота)
-- Дата и время съемки
-- Все технические EXIF теги
+#### Images
+- Basic information (size, format, resolution)
+- Camera (manufacturer, model, lens)
+- Shooting settings (ISO, shutter speed, aperture, focal length)
+- GPS coordinates (latitude, longitude, altitude)
+- Date and time of capture
+- All technical EXIF tags
 
-## Применение в OSINT
+## OSINT Applications
 
-### Цифровая криминалистика
-- Проверка подлинности изображений
-- Определение источника фотографий
-- Анализ временных меток
+### Digital Forensics
+- Verifying image authenticity
+- Identifying photo sources
+- Analyzing timestamps
 
-### Геолокация
-- Определение места съемки
-- Построение маршрутов по фотографиям
-- Верификация местоположения
+### Geolocation
+- Determining shooting location
+- Building routes from photos
+- Location verification
 
-### Аудит безопасности
-- Проверка утечки метаданных
-- Демонстрация рисков приватности
-- Обучение безопасности
+### Security Audit
+- Checking for metadata leaks
+- Demonstrating privacy risks
+- Security training
 
-## Этическое использование
+## Ethical Use
 
-ВАЖНО: Этот инструмент предназначен только для:
-- Авторизованного тестирования безопасности
-- OSINT исследований
-- Образовательных целей
-- Анализа собственных файлов
+IMPORTANT: This tool is intended only for:
+- Authorized security testing
+- OSINT research
+- Educational purposes
+- Analyzing your own files
 
-Всегда соблюдайте законы о конфиденциальности и получайте необходимые разрешения.
+Always comply with privacy laws and obtain necessary permissions.
 
-## Решение проблем
+## Troubleshooting
 
-### Ошибка: "No module named 'PIL'"
+### Error: "No module named 'PIL'"
 ```bash
 pip install Pillow
 ```
 
-### Ошибка: "externally-managed-environment"
-Используйте виртуальное окружение:
+### Error: "externally-managed-environment"
+Use a virtual environment:
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Нет EXIF данных
-Некоторые изображения могут не содержать метаданных:
-- Скриншоты обычно не имеют EXIF
-- Изображения из интернета часто очищены
-- Отредактированные фото могут потерять метаданные
+### No EXIF data
+Some images may not contain metadata:
+- Screenshots usually don't have EXIF
+- Images from the internet are often cleaned
+- Edited photos may lose metadata
 
 
-Создано для OSINT исследований и обучения кибербезопасности
+Created for OSINT research and cybersecurity education
