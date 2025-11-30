@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from PIL.ExifTags import TAGS, GPSTAGS
 from pathlib import Path
 
@@ -31,6 +31,10 @@ class ImageExtractor:
             
             return metadata
             
+        except FileNotFoundError:
+            raise
+        except UnidentifiedImageError:
+            raise
         except Exception as e:
             raise Exception(f"Error extracting image metadata: {e}")
     

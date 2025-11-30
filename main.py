@@ -1,179 +1,142 @@
-#!/usr/bin/env python3
-
 import sys
 import time
-from pathlib import Path
+import argparse
 
-from extractors import ImageExtractor
-from parsers import GPSParser, ExifParser
-from output import OutputFormatter, FileSaver
+from config import AnalysisConfig
+from core import MetadataAnalyzer
+from utils.banner import print_banner, print_slow
 
-
-def print_slow(text, delay=0.01):
-    for char in text:
-        print(char, end='', flush=True)
-        time.sleep(delay)
-    print()
+__version__ = "1.0.0"
 
 
-class MetadataAnalyzer:
+def setup_argument_parser():
+    parser = argparse.ArgumentParser(
+        description='Metadata Extractor - OSINT CLI Tool for extracting metadata from images',
+        epilog='''
+Examples:
+  %(prog)s -i photo.jpg                    # Extract metadata from photo.jpg
+  %(prog)s --folder images/                # Batch process all images in folder
+  %(prog)s -i photo.jpg -o result.txt      # Save to custom output file
+  %(prog)s -i photo.jpg --no-save          # Don't save results to file
+  %(prog)s -i photo.jpg --quiet            # Minimal output (no banner, no typing)
+  %(prog)s -i photo.jpg --no-typing        # Disable typing effect
+  %(prog)s -i photo.jpg --no-banner        # Skip ASCII banner
+  %(prog)s --interactive                   # Interactive mode (prompts for input)
+
+For more information, visit: https://github.com/Cronston/Metadata-info
+        ''',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     
-    def __init__(self, file_path, save_dir="./save"):
-        self.file_path = Path(file_path)
-        self.formatter = OutputFormatter()
-        self.saver = FileSaver(save_dir)
-        self.typing_delay = 0.015
+    parser.add_argument(
+        '-i', '--input',
+        type=str,
+        metavar='FILE',
+        help='Path to the image file to analyze'
+    )
     
-    def print_slow_item(self, text):
-        for char in text:
-            print(char, end='', flush=True)
-            time.sleep(self.typing_delay)
-        print()
+    parser.add_argument(
+        '-f', '--folder',
+        type=str,
+        metavar='DIR',
+        help='Path to folder containing images to analyze'
+    )
     
-    def analyze(self):
-        if not self.file_path.exists():
-            print(f"\nFile not found: {self.file_path}")
-            return
-        
-        file_ext = self.file_path.suffix.lower()
-        
-        try:
-            if file_ext in ['.jpg', '.jpeg', '.png', '.tiff', '.bmp', '.gif']:
-                self._analyze_image()
-            else:
-                print(f"\nUnsupported file type: {file_ext}")
-                print(f"Supported formats: JPEG, PNG, TIFF, BMP, GIF")
-                return
-        except Exception as e:
-            print(f"\nError: {e}")
-            return
-        
-        print()
-        output_file = self.saver.save(
-            self.formatter.get_output_lines(),
-            self.file_path.name
-        )
-        
-        if output_file:
-            print_slow(f"Results saved to: {output_file}", 0.02)
+    parser.add_argument(
+        '-o', '--output',
+        type=str,
+        metavar='FILE',
+        help='Custom output file path (default: auto-generated in ./save/)'
+    )
     
-    def _analyze_image(self):
-        extractor = ImageExtractor(self.file_path)
-        metadata = extractor.extract()
-        
-        print_slow("\n" + "="*70, 0.001)
-        print_slow("BASIC INFORMATION", 0.03)
-        print_slow("="*70, 0.001)
-        
-        basic = metadata['basic_info']
-        self.print_slow_item(f"File Name                      : {basic['file_name']}")
-        self.print_slow_item(f"File Size                      : {basic['file_size']}")
-        self.print_slow_item(f"Image Format                   : {basic['format']}")
-        self.print_slow_item(f"Image Mode                     : {basic['mode']}")
-        self.print_slow_item(f"Dimensions                     : {basic['dimensions']}")
-        
-        if not metadata['camera_info'] and not metadata['settings_info'] and not metadata['raw_exif']:
-            print_slow("\nNo EXIF metadata found in this image", 0.03)
-            return
-        
-        if metadata['camera_info']:
-            print_slow("\n" + "="*70, 0.001)
-            print_slow("CAMERA INFORMATION", 0.03)
-            print_slow("="*70, 0.001)
-            for key, value in metadata['camera_info'].items():
-                self.print_slow_item(f"{key:30} : {value}")
-        
-        if metadata['settings_info']:
-            print_slow("\n" + "="*70, 0.001)
-            print_slow("CAMERA SETTINGS", 0.03)
-            print_slow("="*70, 0.001)
-            for key, value in metadata['settings_info'].items():
-                formatted_value = ExifParser.format_value(key, value)
-                self.print_slow_item(f"{key:30} : {formatted_value}")
-        
-        if metadata['gps_coords'][0] is not None:
-            print_slow("\n" + "="*70, 0.001)
-            print_slow("GPS LOCATION DATA", 0.03)
-            print_slow("="*70, 0.001)
-            lat, lon = metadata['gps_coords']
-            
-            self.print_slow_item(f"Latitude                       : {lat:.6f}°")
-            self.print_slow_item(f"Longitude                      : {lon:.6f}°")
-            self.print_slow_item(f"Coordinates                    : {lat:.6f}, {lon:.6f}")
-            
-            maps_link = GPSParser.get_maps_link(lat, lon)
-            if maps_link:
-                self.print_slow_item(f"Google Maps                    : {maps_link}")
-            
-            for key, value in metadata['gps_info'].items():
-                if key not in ['GPSLatitude', 'GPSLongitude', 'GPSLatitudeRef', 'GPSLongitudeRef']:
-                    self.print_slow_item(f"{key:30} : {str(value)}")
-        
-        if metadata['raw_exif']:
-            print_slow("\n" + "="*70, 0.001)
-            print_slow("RAW EXIF DATA (ALL TAGS)", 0.03)
-            print_slow("="*70, 0.001)
-            
-            sorted_tags = sorted(metadata['raw_exif'].items())
-            
-            for key, value in sorted_tags:
-                formatted_value = ExifParser.format_value(key, value)
-                self.print_slow_item(f"{key:30} : {formatted_value}")
-        
-        total_tags = (len(metadata['camera_info']) + 
-                     len(metadata['settings_info']) + 
-                     len(metadata['raw_exif']))
-        
-        print_slow(f"\n✅ Extracted {total_tags} EXIF tags", 0.02)
+    parser.add_argument(
+        '--no-save',
+        action='store_true',
+        help='Don\'t save results to file (only display on screen)'
+    )
+    
+    parser.add_argument(
+        '--quiet',
+        action='store_true',
+        help='Minimal output mode (no banner, no typing effect)'
+    )
+    
+    parser.add_argument(
+        '--no-typing',
+        action='store_true',
+        help='Disable typing effect (but keep banner)'
+    )
+    
+    parser.add_argument(
+        '--no-banner',
+        action='store_true',
+        help='Skip ASCII art banner'
+    )
+    
+    parser.add_argument(
+        '-v', '--version',
+        action='version',
+        version=f'%(prog)s {__version__}'
+    )
 
-
-def print_banner():
-    banner = """
-╔═══════════════════════════════════════════════════════════════════╗
-║                                                                   ║
-║   ███╗   ███╗███████╗████████╗ █████╗ ██████╗  █████╗ ████████╗  ║
-║   ████╗ ████║██╔════╝╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗╚══██╔══╝  ║
-║   ██╔████╔██║█████╗     ██║   ███████║██║  ██║███████║   ██║     ║
-║   ██║╚██╔╝██║██╔══╝     ██║   ██╔══██║██║  ██║██╔══██║   ██║     ║
-║   ██║ ╚═╝ ██║███████╗   ██║   ██║  ██║██████╔╝██║  ██║   ██║     ║
-║   ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝   ╚═╝     ║
-║                                                                   ║
-║        ██╗███╗   ██╗███████╗ ██████╗                             ║
-║        ██║████╗  ██║██╔════╝██╔═══██╗                            ║
-║        ██║██╔██╗ ██║█████╗  ██║   ██║                            ║
-║        ██║██║╚██╗██║██╔══╝  ██║   ██║                            ║
-║        ██║██║ ╚████║██║     ╚██████╔╝                            ║
-║        ╚═╝╚═╝  ╚═══╝╚═╝      ╚═════╝                             ║
-║                                                                   ║
-║              OSINT Metadata Extraction Tool                       ║
-║                   Image Analysis                                  ║
-║                                                                   ║
-╚═══════════════════════════════════════════════════════════════════╝
-"""
-    print_slow(banner, delay=0.001)
-    print()
+    parser.add_argument(
+        '--interactive',
+        action='store_true',
+        help='Run in interactive mode'
+    )
+    
+    return parser
 
 
 def main():
-    print_banner()
+    parser = setup_argument_parser()
     
-    print_slow("Welcome to Metadata Info Extractor!", delay=0.03)
-    print()
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(0)
+        
+    args = parser.parse_args()
     
-    file_path = input("Enter the path to image file: ").strip()
+    if args.input or args.folder:
+        config = AnalysisConfig.from_args(args)
+        
+        if config.show_banner:
+            print_banner(config.typing_enabled)
+        
+        analyzer = MetadataAnalyzer(config)
+        
+        if config.folder_path:
+            analyzer.analyze_folder()
+        else:
+            if not config.quiet_mode and config.typing_enabled:
+                print_slow("Analyzing image...", delay=0.03)
+                time.sleep(0.3)
+            analyzer.analyze()
     
-    if not file_path:
-        print("\nNo file path provided!")
+    elif args.interactive:
+        print_banner(typing_enabled=True)
+        print_slow("Welcome to Metadata Info Extractor!", delay=0.03)
+        print()
+        
+        file_path = input("Enter the path to image file: ").strip()
+        
+        if not file_path:
+            print("\nNo file path provided!")
+            sys.exit(1)
+        
+        file_path = file_path.strip('"').strip("'")
+        
+        print()
+        print_slow("Analyzing image...", delay=0.03)
+        time.sleep(0.5)
+        
+        config = AnalysisConfig.interactive(file_path)
+        analyzer = MetadataAnalyzer(config)
+        analyzer.analyze()
+        
+    else:
+        parser.print_help()
         sys.exit(1)
-    
-    file_path = file_path.strip('"').strip("'")
-    
-    print()
-    print_slow("Analyzing image...", delay=0.03)
-    time.sleep(0.5)
-    
-    analyzer = MetadataAnalyzer(file_path)
-    analyzer.analyze()
 
 
 if __name__ == "__main__":

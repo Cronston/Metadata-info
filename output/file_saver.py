@@ -28,3 +28,17 @@ class FileSaver:
         except Exception as e:
             print(f"Error saving file: {e}")
             return None
+    
+    def save_to_custom_path(self, output_lines, custom_path):
+        try:
+            output_file = Path(custom_path)
+            
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(output_lines))
+            
+            return output_file
+        except Exception as e:
+            print(f"Error saving file: {e}")
+            return None
